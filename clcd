@@ -1,0 +1,22 @@
+Deployment in AWS:
+Resource: AWS Lambda function for the FS class logic.
+
+Why: Since the FS class is stateless and event-driven, Lambda is a good fit.
+Resource: Amazon DynamoDB for storing the fileMap and contentMap.
+
+Why: DynamoDB is a managed, serverless database that can scale automatically.
+Resource: AWS API Gateway to expose the Lambda function.
+
+Why: To provide HTTP access to the Lambda function.
+Resource: AWS CodePipeline for CI/CD.
+
+Why: To automate the build, test, and deployment phases.
+Resource: AWS S3 Bucket.
+
+Why: To store deployment artifacts.
+Steps:
+Code is pushed to GitHub.
+AWS CodePipeline triggers on the new commit.
+Code is built and tested.
+If tests pass, the Lambda function is updated.
+API Gateway exposes the new version.
