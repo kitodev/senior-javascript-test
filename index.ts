@@ -1,49 +1,73 @@
-function md5(content: string): string {
-    let hash = 0, i, chr;
-    if (content.length === 0) return hash.toString();
-    for (i = 0; i < content.length; i++) {
-      chr = content.charCodeAt(i);
-      hash = ((hash << 5) - hash) + chr;
-      hash |= 0; 
-    }
-    return hash.toString();
+import * as fs from 'fs';
+import * as crypto from 'crypto';
+
+class FS {
+  private directory: string;
+  private contentMap: { [key: string]: string } = {};
+
+  constructor(directory: string) {
+    this.directory = directory;
+    this.loadContentMap();
   }
-   
-  class FS {
-    private directory: string;
-    private fileMap: Map<string, string>; 
-    private contentMap: Map<string, string>;
-   
-    constructor(directory: string) {
-      this.directory = directory;
-      this.fileMap = new Map();
-      this.contentMap = new Map();
+
+  store(filename: string, content: string): void {
+    const hash = this.calculateHash(content);
+    this.contentMap[filename] = hash;
+    this.saveContentMap();
+  }
+
+  get(filename: string): string | undefined {
+    const hash = this.contentMap[filename];
+    if (hash) {
+      return this.loadContent(hash);
     }
-   
-    store(filename: string, content: string): void {
-      const hash = md5(content);
-      this.fileMap.set(filename, hash);
-      if (!this.contentMap.has(hash)) {
-        this.contentMap.set(hash, content);
-      }
-    }
-   
-    get(filename: string): string | null {
-      const hash = this.fileMap.get(filename);
-      if (hash !== undefined) {
-        return this.contentMap.get(hash) || null;
-      }
-      return null;
+    return undefined;
+  }
+
+  private calculateHash(content: string): string {
+    const hash = crypto.createHash('md5');
+    hash.update(content);
+    return hash.digest('hex');
+  }
+
+  private loadContentMap(): void {
+    const filePath = this.getFilePath('contentMap.json');
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      this.contentMap = JSON.parse(content);
     }
   }
-   
-  const fs = new FS("/topdir");
-  fs.store("filename1", "a very long string1");
-  fs.store("filename2", "a very long string1");
-  fs.store("filename3", "a very long string3");
-   
-  const result1 = fs.get("filename1"); // gets 'a very long string1'
-  const result2 = fs.get("filename2"); // gets 'a very long string1'
-  const result3 = fs.get("filename3"); // gets 'a very long string3'
-   
-  console.log(result1, result2, result3);
+
+  private saveContentMap(): void {
+    const filePath = this.getFilePath('contentMap.json');
+    fs.writeFileSync(filePath, JSON.stringify(this.contentMap, null, 2), 'utf-8');
+  }
+
+  private loadContent(hash: string): string | undefined {
+    const filePath = this.getFilePath(hash);
+    if (fs.existsSync(filePath)) {
+      return fs.readFileSync(filePath, 'utf-8');
+    }
+    return undefined;
+  }
+
+  private getFilePath(filename: string): string {
+    return `${this.directory}/${filename}`;
+  }
+}
+
+// Example usage:
+const fs = new FS("/topdir");
+
+fs.store("filename1", "a very long string1");
+fs.store("filename2", "a very long string1");
+fs.store("filename3", "a very long string3");
+fs.store("filename2", "a very long string3");
+
+const result1 = fs.get("filename1"); // gets 'a very long string1'
+const result2 = fs.get("filename2"); // gets 'a very long string3'
+const result3 = fs.get("filename3"); // gets 'a very long string3'
+
+console.log(result1);
+console.log(result2);
+console.log(result3);
